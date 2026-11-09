@@ -11,7 +11,12 @@ One deploy script sets up a fresh Ubuntu box and installs the converter.
 - Ubuntu (22.04 or newer; tested on 24.04)
 - A normal user account with sudo
 - An Audible account — this only works on books you own
-- ~350MB of disk per 6-hour book
+- ~350MB of disk per 6-hour book (a 75-book library runs about 50GB)
+
+## What's here
+
+- `deploy-audible.sh` — sets up a fresh box and installs the converter
+- `foldered.sh` — sorts converted files into `Author/Title/` folders
 
 ## Install
 
@@ -107,7 +112,7 @@ fall back to the older AAX format and activation-bytes decryption.
 
 ## Output
 
-Files land as `Author - Title.m4b` with a matching `.jpg` alongside.
+Files land as `Author Title.m4b` with a matching `.jpg` alongside.
 Characters that upset SMB, ext4, or Plex are stripped from names, and
 length is capped at 150 chars.
 
@@ -121,6 +126,47 @@ Each file carries:
 
 Audio is **copied, not re-encoded**. Audible already ships AAC, so the
 conversion is lossless and takes seconds rather than minutes.
+
+## Sorting into folders
+
+`convert.sh` writes everything flat into one directory. `foldered.sh` sorts
+it into `Author/Title/` folders, which is what Audiobookshelf and Plex
+expect:
+
+```
+chmod +x foldered.sh
+./foldered.sh -n ~/audiobooks    # dry run, change nothing
+./foldered.sh ~/audiobooks       # do it
+```
+
+Result:
+
+```
+Dennis E. Taylor/
+  We Are Legion (We Are Bob)/
+    We Are Legion (We Are Bob).m4b
+    cover.jpg
+  Heaven's River/
+    ...
+```
+
+Author and title come from each file's own `artist` and `title` tags, not
+from the filename. That matters: filenames have had `:` and other
+characters stripped for filesystem safety, so parsing them gives you
+`Frank Herbert Dune, The Dune Sequence Dune` with no reliable way to find
+the boundary. The tags have the real values — `Frank Herbert` / `Dune` —
+including any Unicode the filename lost.
+
+Options:
+
+- `-n` — dry run
+- `-f` — flat: one folder per book instead of `Author/Title`
+- `--keep-jpg-name` — leave the jpg named after the book instead of
+  `cover.jpg`
+
+Safe to re-run; books already in place are skipped, and it never
+overwrites. Anything missing tags falls back to its filename and is
+counted as `untagged` in the summary so you can spot it.
 
 ## Skipping podcasts
 
@@ -169,6 +215,12 @@ AtomicParsley file.m4b -t | grep -i covr
 If it's there, the player is the issue. Audiobookshelf and Plex often
 prefer the `.jpg` sidecar, which is written alongside each file. Plex also
 wants m4b files in an `Artist/Album/` folder structure.
+
+**`is not downloadable`** — the title is in your library via an Audible
+Plus / subscription catalog rather than purchased. Those are streaming-only
+and carry no download license, so there's nothing to fix; buying the title
+outright makes it convert normally. The cover and chapter JSON still
+download, which is why the failure can look partial.
 
 **A single book fails in `--all` mode** — the run logs it and continues.
 Re-run the single-book command for that ASIN to see the real error; `--all`
