@@ -16,7 +16,11 @@ One deploy script sets up a fresh Ubuntu box and installs the converter.
 ## What's here
 
 - `deploy-audible.sh` — sets up a fresh box and installs the converter
-- `foldered.sh` — sorts converted files into `Author/Title/` folders
+- `foldered.sh` — sorts converted files into `Author/Title/` folders (optional)
+- `rename-full.sh` — restores the long `Author Series Title` filenames (optional)
+
+Only `deploy-audible.sh` is required. The other two are housekeeping you
+can run, skip, or run in either combination.
 
 ## Install
 
@@ -127,11 +131,15 @@ Each file carries:
 Audio is **copied, not re-encoded**. Audible already ships AAC, so the
 conversion is lossless and takes seconds rather than minutes.
 
-## Sorting into folders
+## Sorting into folders (optional)
 
-`convert.sh` writes everything flat into one directory. `foldered.sh` sorts
-it into `Author/Title/` folders, which is what Audiobookshelf and Plex
-expect:
+`convert.sh` writes everything flat into one directory. That works fine —
+most players read the embedded tags, not the paths — so skip this section
+if you're happy with a flat folder.
+
+`foldered.sh` sorts it into `Author/Title/` folders, which is what
+Audiobookshelf and Plex prefer, and which makes the library navigable in a
+file browser:
 
 ```
 chmod +x foldered.sh
@@ -167,6 +175,35 @@ Options:
 Safe to re-run; books already in place are skipped, and it never
 overwrites. Anything missing tags falls back to its filename and is
 counted as `untagged` in the summary so you can spot it.
+
+### Longer filenames (optional)
+
+After foldering, each file is named just for its title —
+`Heaven's River/Heaven's River.m4b`. If you'd rather the file itself carry
+the full author and series (handy when a file gets copied somewhere on its
+own, or shows up in a flat "recent files" list), `rename-full.sh` puts that
+back:
+
+```
+chmod +x rename-full.sh
+./rename-full.sh -n ~/audiobooks    # dry run
+./rename-full.sh ~/audiobooks       # do it
+```
+
+```
+Dennis E. Taylor/
+  Heaven's River/
+    Dennis E. Taylor Bobiverse Heaven's River.m4b
+    cover.jpg
+```
+
+Folders are left alone — only the `.m4b` is renamed. The name is rebuilt
+from the `artist`, `series` and `title` tags, so it doesn't depend on what
+the file is currently called and the script is safe to re-run. Books with
+no series tag just get `Author Title`.
+
+`--rename-cover` renames `cover.jpg` to match as well. Leave it off if
+you're using Audiobookshelf, which looks for `cover.jpg` specifically.
 
 ## Skipping podcasts
 
